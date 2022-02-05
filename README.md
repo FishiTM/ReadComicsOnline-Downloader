@@ -1,4 +1,4 @@
-# ReadComicsOnline-Downloader
+# ReadComicsOnline Downloader
 
 
 ## How To Install Requirements:
