@@ -12,6 +12,7 @@ def setTitle(s):
         os.system(f"title {s}")
     else:
         sys.stdout.write(f"\x1b]2;{s}\x07")
+        
 def clearConsole():
     if (os.name == "nt"):
         os.system("cls")
