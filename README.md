@@ -8,7 +8,7 @@ pip3 install -r requirements.txt
 *If Doesn't Work Try Using `pip` Instead Of `pip3`*
 
 ## How To Run:
-```
+```batch
 cd path/to/directory/
 python3 main.py
 ```
