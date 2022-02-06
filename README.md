@@ -15,7 +15,7 @@ python3 main.py
 *Hasn't Been Tested With Python2 But Can Confirm Works With Python3*
 
 ## How It Works:
-1. Scrapes Page To Get Image File
-2. Downloads Image File
+1. Scrapes Page To Get Image
+2. Downloads Image Files
 3. Converts Images Into PDF
-4. Deletes Image Files
+4. Deletes Temp Files
