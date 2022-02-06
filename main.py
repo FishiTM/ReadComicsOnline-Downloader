@@ -5,6 +5,13 @@ import requests
 from lxml import etree
 from bs4 import BeautifulSoup
 from PIL import Image
+from time import perf_counter
+
+def setTitle(s):
+    if (os.name == "nt"):
+        os.system(f"title {s}")
+    else:
+        sys.stdout.write(f"\x1b]2;{s}\x07")
 
 def clearConsole():
     if (os.name == "nt"):
@@ -12,19 +19,30 @@ def clearConsole():
     else:
         os.system("clear")
 
-def fixURL(URL): # INEFFICIENT BUT WORKS
-    if (URL.startswith("http://")):
-        URL.replace("http://", "https://")
-    elif (URL.startswith("www.readcomicsonline")):
-        URL.replace("www.readcomicsonline", "https://readcomicsonline")
-    elif (URL.startswith("readcomicsonline.")):
-        URL.replace("readcomicsonline.", "https://www.readcomicsonline.")
-    return URL
+def fixURL(url): # INEFFICIENT BUT WORKS
+    if (url.startswith("http://")):
+        url.replace("http://", "https://")
+    elif (url.startswith("www.readcomicsonline")):
+        url.replace("www.readcomicsonline", "https://readcomicsonline")
+    elif (url.startswith("readcomicsonline.")):
+        url.replace("readcomicsonline.", "https://www.readcomicsonline.")
+    return url
 
-def setPageNo(URL, n):
-    splitURL = URL.split("/")
+def getComicName(baseUrl: str):
+    return baseUrl.replace("https://", "").split("/")[2].replace("-", " ").title() # 0=Domain 1=Type 2=Title 3=BookNo 4=Page
+
+def setPageNo(url, n):
+    splitURL = url.split("/")
     splitURL[-1] = str(n)
     return "/".join(splitURL)
+
+def setPageDefault(url):
+    t = url.replace("https://", "").split("/")
+    if (len(t) != 5):
+        if (not url.endswith("/")):
+            url = url + "/"
+        url = url + "1"
+    return setPageNo(url, 1)
 
 def getComicPage(baseURL, n):
     URL = setPageNo(baseURL, n)
@@ -37,68 +55,88 @@ def getComicPage(baseURL, n):
     except:
         return None
 
+def getComicPageN(baseUrl: str, n: int):
+    t = baseUrl.replace("https://", "").split("/")[-1].split(".")
+    fn, ext = t[0], t[1]
+    s = str(n)
+    while (len(s) < len(fn)):
+        s = "0" + s
+    ret = baseUrl.replace("https://", "").split("/")
+    ret[-1] =f"{s}.{ext}"
+    return "https://" + "/".join(ret)
+
+def resetTempFolder():
+    deleteTempFolder()
+    os.mkdir("./temp/")
+
 def deleteTempFolder():
     try:
         shutil.rmtree("./temp/")
     except Exception:
         pass
 
-def resetTempFolder():
-    deleteTempFolder()
-    os.mkdir("./temp/")
+def dirSize(path: str):
+    total = 0
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_file():
+                total += entry.stat().st_size
+            elif entry.is_dir():
+                total += dirSize(entry.path)
+    return total
 
-def setTitle(s):
-    if (os.name == "nt"):
-        os.system(f"title {s}")
-    else:
-        sys.stdout.write(f"\x1b]2;{s}\x07")
+def calcDLSpeed(fp, t1, t2):
+    fs = dirSize(fp)
+    speed = fs / (t2-t1)
+    return speed # IN BITS
 
-def getComicName(baseURL):
-    t = baseURL.replace("https://", "").split("/")  # 0=Domain 1=Type 2=Title 3=BookNo 4=Page
-    name = t[2].replace("-", " ").title()
-    return name
+def nextOutput():
+    if (not os.path.exists("./output.pdf")):
+        return "./output.pdf"
+    i = 1
+    while (True):
+        if (not os.path.exists(f"./output ({i}).pdf")):
+            return f"./output ({i}).pdf"
+        i+=1
 
-clearConsole()
-setTitle("ReadComicsOnlineDL - Menu")
+clearConsole(); setTitle("ReadComicsOnline Downloader")
 baseURL = input("Comic URL : ").strip()
 clearConsole()
-baseURL = fixURL(baseURL)
-baseURL = setPageNo(baseURL, 1)
-resetTempFolder()
+baseURL = fixURL(baseURL); baseURL = setPageDefault(baseURL)
 
-comicName = getComicName(baseURL)
-print(f"Downloading '{comicName}'")
-setTitle("ReadComicsOnlineDL - Downloading")
-i = 1; images = []
+resetTempFolder()
+comicName = getComicName(baseURL); print(f"Downloading '{comicName}'\n")
+i = 1; start_time = perf_counter();
+baseImage = getComicPage(baseURL, 1)
 while (True):
     try:
-        image = getComicPage(baseURL, i)
+        image = getComicPageN(baseImage, i)
     except:
         break
     if (image is not None):
         r = requests.get(image, allow_redirects=True)
+        if r.status_code == 404:
+            break
         fn = image.split("/")[-1]
         fp = f"./temp/{fn}"
         open(fp, 'wb').write(r.content)
-        images.append(fp)
-        setTitle(f"ReadComicsOnlineDL - Downloaded {i} Pages")
+        print(f"Downloaded {i} Pages @ {round(calcDLSpeed('./temp/', start_time, perf_counter()) / 1000 / 1000,2)} Mb/s   ", end="\r")
     else:
         break
     i+=1
 print("Done Downloading!")
-images.sort()
 
 print("Converting To PDF...")
-setTitle(f"ReadComicsOnlineDL - Converting To PDF")
-ext = "." + images[0].split(".")[-1]
-imagelist = []
-for fp in images:
-    im = Image.open(fp)
+files = os.listdir("./temp/"); files.sort()
+ext = "." + files[0].split(".")[-1]
+images = []
+for file in files:
+    file = f"./temp/{file}"
+    im = Image.open(file)
     if im.mode == "RGBA":
         im = im.convert("RGB")
-    imagelist.append(im)
-imagelist[0].save("./output.pdf", save_all=True, quality=100, append_images=imagelist[1:])
+    images.append(im)
+images[0].save(nextOutput(), save_all=True, quality=100, append_images=images[1:])
 print("Done Converting!")
-setTitle(f"ReadComicsOnlineDL - Cleaning Temp File")
-deleteTempFolder()
 setTitle(f"ReadComicsOnlineDL - Finished")
+deleteTempFolder()
