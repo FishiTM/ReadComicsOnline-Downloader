@@ -3,9 +3,9 @@
 
 ## How To Install Requirements:
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
-\* *If Doesn't Work Try Using `pip3` Instead*
+\* *If Doesn't Work Try Using `pip` Instead Of `pip3`*
 
 ## How To Run:
 ```
