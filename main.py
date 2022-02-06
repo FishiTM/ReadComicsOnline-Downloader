@@ -12,7 +12,6 @@ def setTitle(s):
         os.system(f"title {s}")
     else:
         sys.stdout.write(f"\x1b]2;{s}\x07")
-
 def clearConsole():
     if (os.name == "nt"):
         os.system("cls")
@@ -37,6 +36,8 @@ def setPageNo(url, n):
     return "/".join(splitURL)
 
 def setPageDefault(url):
+    if (not url.endswith("/")):
+        url = url + "/"
     t = url.replace("https://", "").split("/")
     if (len(t) != 5):
         if (not url.endswith("/")):
@@ -55,7 +56,7 @@ def getComicPage(baseURL, n):
     except:
         return None
 
-def getComicPageN(baseUrl: str, n: int):
+def getComicPageImg(baseUrl: str, n: int):
     t = baseUrl.replace("https://", "").split("/")[-1].split(".")
     fn, ext = t[0], t[1]
     s = str(n)
@@ -110,7 +111,7 @@ i = 1; start_time = perf_counter();
 baseImage = getComicPage(baseURL, 1)
 while (True):
     try:
-        image = getComicPageN(baseImage, i)
+        image = getComicPageImg(baseImage, i)
     except:
         break
     if (image is not None):
@@ -124,19 +125,26 @@ while (True):
     else:
         break
     i+=1
-print("Done Downloading!")
 
-print("Converting To PDF...")
 files = os.listdir("./temp/"); files.sort()
 ext = "." + files[0].split(".")[-1]
 images = []
-for file in files:
+outfile = nextOutput()
+im = Image.open(f"./temp/{files[0]}")
+if im.mode == "RGBA":
+    im = im.convert("RGB")
+im.save(outfile, save_all=True, quality=100, append_images=images[1:])
+i = 1; start_time = perf_counter(); print(f"\n\nConverted {i} Pages To PDF @ {round(i/(perf_counter()-start_time),2)} Pages/s", end="\r")
+im.close()
+for file in files[1:]:
     file = f"./temp/{file}"
     im = Image.open(file)
     if im.mode == "RGBA":
         im = im.convert("RGB")
-    images.append(im)
-images[0].save(nextOutput(), save_all=True, quality=100, append_images=images[1:])
-print("Done Converting!")
-setTitle(f"ReadComicsOnlineDL - Finished")
+    im.save(outfile, quality=100, append=True)
+    print(f"Converted {i} Pages To PDF @ {round(i/(perf_counter()-start_time),2)} Pages/s     ", end="\r")
+    im.close()
+    i+=1
+print(f"Converted {i} Pages To PDF @ {round(i/(perf_counter()-start_time),2)} Pages/s     ")
+print("\nDone Converting!")
 deleteTempFolder()
