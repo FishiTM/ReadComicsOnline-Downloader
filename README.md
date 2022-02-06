@@ -2,7 +2,7 @@
 *A Simple Comic Downloader For The [ReadComicsOnline](https://readcomicsonline.ru/) Site*
 
 ## How To Install Requirements:
-```
+```batch
 pip3 install -r requirements.txt
 ```
 *If Doesn't Work Try Using `pip` Instead Of `pip3`*
