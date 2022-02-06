@@ -1,5 +1,5 @@
 # ReadComicsOnline Downloader
-
+* A Simple Comic Downloader For The [ReadComicsOnline](https://readcomicsonline.ru/) Site
 
 ## How To Install Requirements:
 ```
